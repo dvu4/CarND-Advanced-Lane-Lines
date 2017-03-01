@@ -37,7 +37,7 @@
 # 
 # If you're feeling ambitious (again, totally optional though), don't stop there! We encourage you to go out and take video of your own, calibrate your camera and show us how you would implement this project from scratch!
 
-# In[3]:
+# In[1]:
 
 import os
 import scipy
@@ -57,7 +57,7 @@ from IPython.display import HTML, YouTubeVideo
 get_ipython().magic('matplotlib inline')
 
 
-# In[4]:
+# In[2]:
 
 camera_calibration_images = glob.glob('camera_cal/calibration*.jpg')
 
@@ -76,7 +76,7 @@ test_images = [mpimg.imread(f) for f in glob.glob('./test_images/*.jpg')]
 # 
 # We start by preparing "object points", which are (x, y, z) coordinates of the chessboard corners in the world (assuming coordinates such that z=0). Thus, objp is just a replicated array of coordinates, and objpoints will be appended with a copy of it every time all chessboard corners are successfully detected  in a test image. imgpoints will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.
 
-# In[5]:
+# In[3]:
 
 def find_corner(chessboard_images, nx=9, ny=6):
         objp = np.zeros((ny*nx,3), np.float32)
@@ -100,7 +100,7 @@ def find_corner(chessboard_images, nx=9, ny=6):
         return objpoints, imgpoints
 
 
-# In[6]:
+# In[4]:
 
 def calibrate_camera(chessboard_images):
     img = chessboard_images[0]
@@ -114,7 +114,7 @@ def calibrate_camera(chessboard_images):
     return camera_matrix, distortion_coeff 
 
 
-# In[7]:
+# In[5]:
 
 def display_corners(chessboard_images, nx=9, ny=6):
     corner_images = []
@@ -142,7 +142,7 @@ def display_corners(chessboard_images, nx=9, ny=6):
 
 # In[6]:
 
-display_corners(chessboard_images)
+#display_corners(chessboard_images)
 
 
 # # 2. Pipeline (single images)
@@ -259,7 +259,7 @@ for i , (image, ax) in enumerate(zip(chessboard_images, axes)):
 # 
 # For color thresholding , the L and S channel of HLS images are specially good at detecting bright lines. The s channel for a gradient filter along x and saturation threshold, as well as the l channel for a luminosity threshold filter. A combination of these filters is used in the `binarize_pipeline()` function. This is implemented in `binarize_pipeline()` function 
 
-# In[11]:
+# In[13]:
 
 def binarize_pipeline(img, s_thresh=(120, 255), sx_thresh=(20, 255),  h_thresh=(200, 255), l_thresh=(40,255)):
     #s_thresh=(170, 255), sx_thresh=(80, 100),
@@ -311,7 +311,7 @@ def binarize_pipeline(img, s_thresh=(120, 255), sx_thresh=(20, 255),  h_thresh=(
     
 
 
-# In[12]:
+# In[14]:
 
 fig, axes = plt.subplots(len(test_images),2, figsize=(8*2, 4*len(test_images)))
 fig.subplots_adjust(hspace=0.2, wspace=0.05)
@@ -536,7 +536,7 @@ plt.show()
 # 
 # The results of the lane pixels in the bird-eye view are shown below. We can see there are some noises in the final lane images, which need to be removed before parameter estimation.
 
-# In[13]:
+# In[19]:
 
 def find_peaks(img,thresh):
     img_half=img[img.shape[0]/2:,:,0]
@@ -723,7 +723,7 @@ right_fit = np.polyfit(righty, rightx, 2)
 # 
 # 
 
-# In[24]:
+# In[22]:
 
 # Define a class to receive the characteristics of each line detection
 class Line:
@@ -878,7 +878,7 @@ def get_binary_lane_image(img,line,window_center,width=300):
     return lane_binary
 
 
-# In[25]:
+# In[23]:
 
 test_images = [mpimg.imread(f) for f in glob.glob('./test_images/*.jpg')]
 
@@ -918,7 +918,7 @@ plt.show()
 
 # ### 2.6 Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-# In[30]:
+# In[31]:
 
 def project_lane_lines(img,left_fitx,right_fitx,yvals):
     
@@ -937,11 +937,11 @@ def project_lane_lines(img,left_fitx,right_fitx,yvals):
     
         
     undist = undistort(img)  
-    sp = (550, 310) 
-    ep = (700, 460)
-    for i in range(4):
-        center = ((ep[0] + sp[0])/2 , )
-        cv2.rectangle(undist, (550, 310), (700, 460), (0,0,255), 4)
+    #sp = (550, 310) 
+    #ep = (700, 460)
+    #for i in range(4):
+        #center = ((ep[0] + sp[0])/2 , )
+        #cv2.rectangle(undist, (550, 310), (700, 460), (0,0,255), 4)
     unwarp,Minv = warp(img,bird_view=False)
 
     
@@ -1000,7 +1000,7 @@ def project_lane_lines(img,left_fitx,right_fitx,yvals):
 # x1, y1 = pts_right[0][40]
 # print(x, y, x1, y1)
 
-# In[31]:
+# In[37]:
 
 def process_image(img):
     global left
@@ -1027,22 +1027,31 @@ def process_image(img):
     right_fitx = right.avgx
     yvals = left.fit_yvals
     lane_width = 3.7
-    off_center = -100*round(0.5*(right.line_base_pos-lane_width/2) +  0.5*(abs(left.line_base_pos)-lane_width/2),2)
+    #off_center = -100*round(0.5*(right.line_base_pos-lane_width/2) +  0.5*(abs(left.line_base_pos)-lane_width/2),2)
+    
+    #notice that line_pos is used instead of line_base_pos
+    center_of_lane = (left.line_pos + right.line_pos)/2
+    
+    #Then the distance from the center in pixels
+    distance_in_pixels = center_of_lane - 640
+
+    #Then converting it to real space: 
+    off_center = round(distance_in_pixels * 3.7 / 600.0, 2)
     
     result = project_lane_lines(img,left_fitx,right_fitx,yvals)
     
     font = cv2.FONT_HERSHEY_SIMPLEX
     str1 = str('distance from center: '+str(off_center)+'cm')
-    cv2.putText(result,str1,(430,630), font, 1,(0,0,255),2,cv2.LINE_AA)
+    cv2.putText(result,str1,(430,630), font, 1,(255,0,0),2,cv2.LINE_AA)
     if left.radius_of_curvature and right.radius_of_curvature:
         curvature = 0.5*(round(right.radius_of_curvature/1000,1) + round(left.radius_of_curvature/1000,1))
         str2 = str('radius of curvature: '+str(curvature)+'km')
-        cv2.putText(result,str2,(430,670), font, 1,(0,0,255),2,cv2.LINE_AA)    
+        cv2.putText(result,str2,(430,670), font, 1,(255,0,0),2,cv2.LINE_AA)    
     
     return result
 
 
-# In[32]:
+# In[38]:
 
 test_images = [mpimg.imread(f) for f in glob.glob('./test_images/*.jpg')]
 
@@ -1077,7 +1086,7 @@ plt.show()
 # 
 # The result on project_video.mp4 is shown below. The algorithm works did not work on the two challenge videos. I didn't go further to modify the code to work on these challenges. As mentioned above, I am not really convinced by the material in this project, so even it succeeds on the challenge videos, I have no confidence at all that it will work on new scenarios.
 
-# In[49]:
+# In[39]:
 
 output_dir= './output_images/'
 clip_input_file = 'project_video.mp4'
@@ -1087,7 +1096,7 @@ clip_output = clip.fl_image(process_image)
 get_ipython().magic('time clip_output.write_videofile(clip_output_file, audio=False)')
 
 
-# In[53]:
+# In[40]:
 
 output_dir= './output_images/'
 clip_input_file = 'project_video.mp4'
@@ -1097,19 +1106,24 @@ clip_output = clip.fl_image(process_image)
 get_ipython().magic('time clip_output.write_videofile(clip_output_file, audio=False)')
 
 
-# In[5]:
+# In[2]:
 
-YouTubeVideo('NMCZenKgDoM')
+YouTubeVideo('Nuctmk4_eKE')
 
 
-# In[54]:
+# In[ ]:
 
 output_dir= './output_images/'
 clip_input_file = 'harder_challenge_video.mp4'
 clip_output_file = output_dir +'processed_' + clip_input_file
-clip = VideoFileClip(clip_input_file)
+clip = VideoFileClip(clip_input_file).subclip(30, 40)
 clip_output = clip.fl_image(process_image)
 get_ipython().magic('time clip_output.write_videofile(clip_output_file, audio=False)')
+
+
+# In[ ]:
+
+
 
 
 # # 4. Discussion
